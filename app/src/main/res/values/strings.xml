@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">MyCompass</string>
+    <string name="accelerometer_values">Accelerometer Values</string>
+    <string name="xValue">X-value: %1$s</string>
+    <string name="yValue">Y-value: %1$s</string>
+    <string name="zValue">Z-value: %1$s</string>
 </resources>
