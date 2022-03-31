@@ -4,4 +4,5 @@
     <string name="xValue">X-value: %1$s</string>
     <string name="yValue">Y-value: %1$s</string>
     <string name="zValue">Z-value: %1$s</string>
+    <string name="tiltText">Tilt: %1$s</string>
 </resources>
