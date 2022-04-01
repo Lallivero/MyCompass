@@ -5,4 +5,7 @@
     <string name="yValue">Y-value: %1$s</string>
     <string name="zValue">Z-value: %1$s</string>
     <string name="tiltText">Tilt: %1$s</string>
+    <string name="compass_values">COMPASS VALUES</string>
+    <string name="an_image_of_a_compass">An image of a compass</string>
+    <string name="explore_your_senses">Explore Your Senses</string>
 </resources>
