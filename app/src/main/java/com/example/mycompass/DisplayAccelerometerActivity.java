@@ -12,12 +12,10 @@ import android.hardware.SensorManager;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.TextView;
 
-import java.text.DecimalFormat;
-
 public class DisplayAccelerometerActivity extends AppCompatActivity implements SensorEventListener {
+
     private enum Tilt {
         FACEUP,
         LEFT,
@@ -25,7 +23,6 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
         UPRIGHT,
         UPSIDEDOWN
     }
-
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
@@ -63,7 +60,7 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
 
     }
 
-    //Initialise the TextViews and give them starter values
+    //Initialise the TextViews and give them starter values, also initiates sound resources and soundPool
     private void initialiseViews() {
         accelX = findViewById(R.id.xValue);
         accelY = findViewById(R.id.yValue);
@@ -79,12 +76,7 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
                 .build();
         soundPool = new SoundPool.Builder().setMaxStreams(4).setAudioAttributes(audioAttributes).build();
         soundPool.setOnLoadCompleteListener((soundPool, sampleId, status) -> soundLoaded = true);
-//        soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
-//            @Override
-//            public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
-//                loaded = true;
-//            }
-//        });
+
         sound1 = soundPool.load(this, R.raw.assets_note1, 1);
         sound2 = soundPool.load(this, R.raw.assets_note2, 1);
         sound3 = soundPool.load(this, R.raw.assets_note3, 1);
@@ -106,21 +98,23 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        sensorManager.unregisterListener(this);
+    }
+
+    @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         displayCurrentValues();
         filteredValues = Utils.lowPassFilter(sensorEvent.values.clone(), filteredValues);
         xValue = filteredValues[0];
         yValue = filteredValues[1];
         zValue = filteredValues[2];
-        //pure values
-//        xValue = sensorEvent.values[0];
-//        yValue = sensorEvent.values[1];
-//        zValue = sensorEvent.values[2];
-        setGradualColorTwo();
-//        calculateGradientValue();
-//        setGradualColorMono();
+
+
         setTilt();
-        onTilt();
+        tiltColour();
+        playSound();
 
 
     }
@@ -135,10 +129,11 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
 
     }
 
+    //Works, but boring. Only changes opacity of background based on xy vector
     private void setGradualColorMono() {
         int i = (int) (gradientValue * 255);
         String hexaDecimal;
-        Log.e("Test", String.valueOf(i));
+
         if (i < 16) {
             hexaDecimal = "0" + Integer.toHexString(i);
         } else {
@@ -148,7 +143,8 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
         constraintLayout.setBackgroundColor(Color.parseColor("#" + hexaDecimal + "CCD4BF"));
     }
 
-    private void setGradualColorTwo() {
+    //Changes background colour based on tilt, x controls red, y green and z blue
+    private void tiltColour() {
         int lowestValue = 75;
         int maxValue = 255;
         int x = calculateRGB(xValue, maxValue, lowestValue);
@@ -163,6 +159,7 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
 
     }
 
+    //calculates the RGB value between max and lowest for a leaning x,y or z
     private int calculateRGB(float value, int maxValue, int lowestValue) {
 
         float normalisedValue = Math.abs(value) / GRAVITY_CONSTANT;
@@ -174,9 +171,9 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
     }
 
 
-
+    //Sets the tilt depending on the tilt value
     private void setTilt() {
-        float tiltValue = 2.5f;
+        float tiltValue = 3f;
         if (tilt != null)
             previousTilt = tilt;
         if (xValue > tiltValue && xValue > Math.abs(yValue)) {
@@ -196,19 +193,15 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
     //Display the current accelerometer values in the respective TextFields
     private void displayCurrentValues() {
         String decimalPattern = "0.00";
-        accelX.setText(getString(R.string.xValue, decimalFormat(xValue, decimalPattern)));
-        accelY.setText(getString(R.string.yValue, decimalFormat(yValue, decimalPattern)));
-        accelZ.setText(getString(R.string.zValue, decimalFormat(zValue, decimalPattern)));
+        accelX.setText(getString(R.string.xValue, Utils.decimalFormat(xValue, decimalPattern)));
+        accelY.setText(getString(R.string.yValue, Utils.decimalFormat(yValue, decimalPattern)));
+        accelZ.setText(getString(R.string.zValue, Utils.decimalFormat(zValue, decimalPattern)));
     }
 
-    private String decimalFormat(float value, String pattern) {
-        DecimalFormat dF = new DecimalFormat(pattern);
-        return dF.format(value);
-    }
-
-    private void onTilt() {
+    //Used to change colour, now it just plays sound
+    private void playSound() {
         if ((tilt != previousTilt && soundLoaded) || previousTilt == null) {
-            //Not sure how this works
+            //This solutions doesn't seem to work yet, using fixed volume for now
 //            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
 //            float actualVolume = (float) audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 //            float maxVolume = (float) audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
@@ -224,11 +217,11 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
                     break;
                 case RIGHT:
                     //constraintLayout.setBackgroundColor(getColor(R.color.burlyWood));
-                    soundPool.play(sound2, 0.05f, 0.05f, 1, 0, 1f);
+                    soundPool.play(sound3, 0.05f, 0.05f, 1, 0, 1f);
                     break;
                 case UPRIGHT:
                     //constraintLayout.setBackgroundColor(getColor(R.color.zinnwaldite));
-                    soundPool.play(sound3, 0.05f, 0.05f, 1, 0, 1f);
+                    soundPool.play(sound2, 0.05f, 0.05f, 1, 0, 1f);
                     break;
                 case UPSIDEDOWN:
                     //constraintLayout.setBackgroundColor(getColor(R.color.ecruWhite));

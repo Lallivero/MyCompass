@@ -10,12 +10,9 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.TestLooperManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
-import android.util.Log;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 public class DisplayCompassActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -30,14 +27,15 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
     private float[] magneticValues = new float[3];
     private float[] rotationMatrix = new float[9];
     private float[] orientationAngles = new float[3];
+    private int vibrationDuration = 300;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_compass);
 
-        compassImage = (ImageView) findViewById(R.id.compassImage);
-        constraintLayout = (ConstraintLayout) findViewById(R.id.compassScreen);
+        compassImage = findViewById(R.id.compassImage);
+        constraintLayout = findViewById(R.id.compassScreen);
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -61,6 +59,12 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        sensorManager.unregisterListener(this);
+    }
+
+    @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
 
         if (sensorEvent == null) {
@@ -77,9 +81,9 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         }
         updateOrientationAngles();
         onNorth();
-        gradualNorth();
+        gradualNorthColour();
     }
-
+    //Provides the angle of the phone from the northern line
     private void updateOrientationAngles() {
 
         SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerValues, magneticValues);
@@ -90,20 +94,20 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         angle = Math.round(degrees * 100.0f) / 100.0f;
         compassImage.setRotation(angle * -1);
     }
-
+    //Vibrates if pointing north
     private void onNorth() {
         if (angle > 345 || angle < 15) {
-            if(hasVibrated){
+            if (hasVibrated) {
                 return;
             }
-            vibrate();
+            vibrate(vibrationDuration);
             hasVibrated = true;
-        }else{
+        } else {
             hasVibrated = false;
         }
     }
-
-    private void gradualNorth() {
+    //Changes from a colour while pointing north to another when pointing south gradually
+    private void gradualNorthColour() {
         int redSouth = 238;
         int greenSouth = 186;
         int blueSouth = 178;
@@ -124,19 +128,21 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         String hexGreen = Utils.getHex(green);
         String hexBlue = Utils.getHex(blue);
         String opacity = "#FF";
-        constraintLayout.setBackgroundColor(Color.parseColor(opacity+hexRed+hexGreen+hexBlue));
+        constraintLayout.setBackgroundColor(Color.parseColor(opacity + hexRed + hexGreen + hexBlue));
     }
 
-    private void vibrate(){
-        if (Build.VERSION.SDK_INT >= 26) {
-            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE));
-        } else {
-            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(300);
-        }
-    }
+
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
+    }
+
+    private void vibrate(int durationTimeMillis) {
+        if (Build.VERSION.SDK_INT >= 26) {
+            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(durationTimeMillis, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(durationTimeMillis);
+        }
     }
 }
