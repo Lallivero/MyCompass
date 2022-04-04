@@ -22,7 +22,7 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
     private float angle;
     private Sensor accelerometer;
     private Sensor magneticField;
-    private boolean hasVibrated = false;
+    private boolean hasVibrated = true;
     private float[] accelerometerValues = new float[3];
     private float[] magneticValues = new float[3];
     private float[] rotationMatrix = new float[9];
@@ -70,19 +70,19 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         if (sensorEvent == null) {
             return;
         } else if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            //With filter
+
             accelerometerValues = Utils.lowPassFilter(sensorEvent.values.clone(), accelerometerValues);
-            //Without filter
-//            accelerometerValues = sensorEvent.values.clone();
+
         } else if (sensorEvent.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            //filter
+
             magneticValues = Utils.lowPassFilter(sensorEvent.values.clone(), magneticValues);
-//            magneticValues = sensorEvent.values.clone();
+
         }
         updateOrientationAngles();
         onNorth();
         gradualNorthColour();
     }
+
     //Provides the angle of the phone from the northern line
     private void updateOrientationAngles() {
 
@@ -94,6 +94,7 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         angle = Math.round(degrees * 100.0f) / 100.0f;
         compassImage.setRotation(angle * -1);
     }
+
     //Vibrates if pointing north
     private void onNorth() {
         if (angle > 345 || angle < 15) {
@@ -106,13 +107,14 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
             hasVibrated = false;
         }
     }
+
     //Changes from a colour while pointing north to another when pointing south gradually
     private void gradualNorthColour() {
         int redSouth = 238;
         int greenSouth = 186;
         int blueSouth = 178;
         int redNorth = 204;
-        int greenNorth = 212;
+        int greenNorth = 230;
         int blueNorth = 191;
         //normalise angle difference
         float normalisedAngle = Math.abs(angle - 180f) / 180f;
@@ -120,9 +122,9 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
             normalisedAngle = 1f;
         }
 
-        int red = redSouth - (int) (Math.abs(redSouth - redNorth) * normalisedAngle);
-        int green = greenSouth + (int) (Math.abs(greenSouth - greenNorth) * normalisedAngle);
-        int blue = blueSouth + (int) (Math.abs(blueSouth - blueNorth) * normalisedAngle);
+        int red = redSouth - (int) ((redSouth - redNorth) * normalisedAngle);
+        int green = greenSouth - (int) ((greenSouth - greenNorth) * normalisedAngle);
+        int blue = blueSouth - (int) ((blueSouth - blueNorth) * normalisedAngle);
 
         String hexRed = Utils.getHex(red);
         String hexGreen = Utils.getHex(green);
@@ -132,7 +134,6 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
     }
 
 
-
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
@@ -140,7 +141,8 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
 
     private void vibrate(int durationTimeMillis) {
         if (Build.VERSION.SDK_INT >= 26) {
-            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(durationTimeMillis, VibrationEffect.DEFAULT_AMPLITUDE));
+            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).
+                    vibrate(VibrationEffect.createOneShot(durationTimeMillis, VibrationEffect.DEFAULT_AMPLITUDE));
         } else {
             ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(durationTimeMillis);
         }

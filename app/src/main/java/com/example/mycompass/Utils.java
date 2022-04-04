@@ -3,7 +3,7 @@ package com.example.mycompass;
 import java.text.DecimalFormat;
 
 public class Utils {
-    private static final float ALPHA = 0.075f;
+    private static final float ALPHA = 0.09f;
 
     public Utils() {
 
@@ -29,5 +29,16 @@ public class Utils {
         return dF.format(value);
     }
 
+    public static float normalise(float value, float maxValue) {
+        float normalisedValue = Math.abs(value) / maxValue;
+        return (normalisedValue > 1 ? 1 : normalisedValue);
+    }
 
+    public static int[] intArrayMultiplyByN(int[] array, float n) {
+
+        for (int i = 0; i < array.length; i++) {
+            array[i] = (int) (array[i] * n);
+        }
+        return array;
+    }
 }
