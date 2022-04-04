@@ -47,7 +47,7 @@
         android:background="@drawable/rounded_background_title"
         android:fontFamily="cursive"
         android:padding="10dp"
-        android:text="@string/heading_text"
+        android:text="@string/headingAngleText"
         android:textSize="48sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"

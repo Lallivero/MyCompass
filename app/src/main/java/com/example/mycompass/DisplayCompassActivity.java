@@ -123,7 +123,7 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
 
     private void displayAngle() {
         String decimalPattern = "0.00";
-        headingDegree.setText(getString(R.string.heading_text, Utils.decimalFormat(angle, decimalPattern)));
+        headingDegree.setText(getString(R.string.headingAngleText, Utils.decimalFormat(angle, decimalPattern)));
     }
 
     private void provideHeadingText() {
