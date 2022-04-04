@@ -34,11 +34,16 @@ public class Utils {
         return (normalisedValue > 1 ? 1 : normalisedValue);
     }
 
-    public static int[] intArrayMultiplyByN(int[] array, float n) {
+    public static void intArrayMultiplyByN(int[] array, float n) {
 
         for (int i = 0; i < array.length; i++) {
             array[i] = (int) (array[i] * n);
         }
-        return array;
+    }
+
+    public static void invertColours(int[] array){
+        for(int i = 0; i < array.length; i++){
+            array[i] = 255 - array[i];
+        }
     }
 }

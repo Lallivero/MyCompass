@@ -8,4 +8,6 @@
     <string name="compass_values">COMPASS VALUES</string>
     <string name="an_image_of_a_compass">An image of a compass</string>
     <string name="explore_your_senses">Explore Your Senses</string>
+    <string name="direction_text">South</string>
+    <string name="heading_text">Heading: %1$s</string>
 </resources>

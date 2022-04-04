@@ -13,12 +13,18 @@ import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.widget.ImageView;
+import android.widget.TextView;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class DisplayCompassActivity extends AppCompatActivity implements SensorEventListener {
 
     private SensorManager sensorManager;
     private ImageView compassImage;
     private ConstraintLayout constraintLayout;
+    private TextView headingText;
+    private TextView headingDegree;
     private float angle;
     private Sensor accelerometer;
     private Sensor magneticField;
@@ -29,6 +35,9 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
     private float[] orientationAngles = new float[3];
     private int vibrationDuration = 300;
 
+    HashMap<String, Integer> headingValues = new HashMap<>();
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,6 +45,8 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
 
         compassImage = findViewById(R.id.compassImage);
         constraintLayout = findViewById(R.id.compassScreen);
+        headingText = findViewById(R.id.headingWrittenTextView);
+        headingDegree = findViewById(R.id.headingAngleTextView);
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -43,6 +54,20 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         sensorManager.registerListener(this, magneticField, SensorManager.SENSOR_DELAY_GAME);
 
+        setupHeadingMap();
+
+    }
+    //North2 needed for proximity calculations to work
+    private void setupHeadingMap(){
+        headingValues.put("North", 0);
+        headingValues.put("North-East", 45);
+        headingValues.put("East", 90);
+        headingValues.put("South-East", 135);
+        headingValues.put("South", 180);
+        headingValues.put("South-West", 225);
+        headingValues.put("West", 270);
+        headingValues.put("North-West", 315);
+        headingValues.put("North2", 360);
     }
 
     @Override
@@ -79,7 +104,8 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
 
         }
         updateOrientationAngles();
-        onNorth();
+        displayAngle();
+        provideHeadingText();
         gradualNorthColour();
     }
 
@@ -95,15 +121,32 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         compassImage.setRotation(angle * -1);
     }
 
-    //Vibrates if pointing north
-    private void onNorth() {
-        if (angle > 345 || angle < 15) {
-            if (hasVibrated) {
-                return;
+    private void displayAngle() {
+        String decimalPattern = "0.00";
+        headingDegree.setText(getString(R.string.heading_text, Utils.decimalFormat(angle, decimalPattern)));
+    }
+
+    private void provideHeadingText() {
+
+        float minHeadingDiff = 360;
+        String closestHeading = "";
+        for (Map.Entry<String, Integer> entry : headingValues.entrySet()) {
+            float diff =Math.abs(angle - entry.getValue()) ;
+            if ( diff < minHeadingDiff) {
+                minHeadingDiff = diff;
+                closestHeading = entry.getKey().replaceAll("\\d","");
             }
+        }
+        headingText.setText(closestHeading);
+        vibrateOnNorth(closestHeading);
+    }
+
+    //Vibrates if pointing north
+    private void vibrateOnNorth(String heading) {
+        if(heading.equals("North") && !hasVibrated){
             vibrate(vibrationDuration);
             hasVibrated = true;
-        } else {
+        }else if(!heading.equals("North")){
             hasVibrated = false;
         }
     }

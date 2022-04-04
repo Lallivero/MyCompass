@@ -15,7 +15,6 @@ import android.media.SoundPool;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class DisplayAccelerometerActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -42,6 +41,9 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
 
     //Variables
     private float[] filteredValues;
+    private int[] xColour = {255, 75, 75};
+    private int[] yColour = {75, 255, 75};
+    private int[] zColour = {75, 75, 255};
     private int sound1;
     private int sound2;
     private int sound3;
@@ -53,7 +55,7 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
     private final float GRAVITY_CONSTANT = 9.82f;
 
     //Flow control
-    private boolean thematicColour = false;
+    private boolean isInverted = false;
     private boolean soundLoaded = false;
     private boolean currentlyShaking = true;
 
@@ -121,46 +123,18 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
 
         filteredValues = Utils.lowPassFilter(sensorEvent.values.clone(), filteredValues);
         onTilt();
-        if (thematicColour)
-            gradualThematicColours();
-        else
-            vibrantTiltColour();
-
 
     }
 
     private void onTilt() {
         displayCurrentValues();
-
+        gradualBackgroundShift();
         tiltText.setText(getString(R.string.tiltText, tilt));
-
         setTilt();
         if (tilt != previousTilt && soundLoaded) {
             amIShaking();
             playSound();
         }
-    }
-
-    //Changes background colour based on tilt, x controls red, y green and z blue
-    private void vibrantTiltColour() {
-        int lowestValue = 75;
-        int maxValue = 255;
-        int x = calculateRGB(filteredValues[0], maxValue, lowestValue);
-        int y = calculateRGB(filteredValues[1], maxValue, lowestValue);
-        int z = calculateRGB(filteredValues[2], maxValue, lowestValue);
-        String xHex = Utils.getHex(x);
-        String yHex = Utils.getHex(y);
-        String zHex = Utils.getHex(z);
-        String opacity = "#FF";
-        constraintLayout.setBackgroundColor(Color.parseColor(opacity + xHex + yHex + zHex));
-
-
-    }
-
-    //calculates the RGB value between max and lowest for a leaning x,y or z
-    private int calculateRGB(float value, int maxValue, int lowestValue) {
-        float normalisedValue = Utils.normalise(value, GRAVITY_CONSTANT);
-        return (Math.max((int) (normalisedValue * maxValue), lowestValue));
     }
 
     //Sets the tilt depending on the tilt value
@@ -178,8 +152,6 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
         } else {
             tilt = Tilt.FACEUP;
         }
-
-
     }
 
     //Display the current accelerometer values in the respective TextFields,
@@ -193,18 +165,22 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
 
     private void amIShaking() {
         long currentTime = System.currentTimeMillis();
-        if ((currentTime - shakeStartTime) > 400) {
-            shakeStartTime = currentTime;
-            currentlyShaking = true;
-        }
-        if (currentlyShaking) {
+
+        if (currentlyShaking && (currentTime - shakeStartTime) < 200) {
             if (shakeCount == 2) {
                 shakeCount = 0;
-                Toast.makeText(this, "Ooooh I am getting dizzy!", Toast.LENGTH_SHORT).show();
+                isInverted = !isInverted;
+                Utils.invertColours(xColour);
+                Utils.invertColours(yColour);
+                Utils.invertColours(zColour);
+
                 currentlyShaking = false;
-            } else if ((currentTime - shakeStartTime) < 100) {
+            } else {
                 shakeCount++;
             }
+        } else if ((currentTime - shakeStartTime) > 400) {
+            shakeStartTime = currentTime;
+            currentlyShaking = true;
         }
     }
 
@@ -237,35 +213,26 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
 
     }
 
-    //EVERYTHING BELOW THIS POINT IS EXPERIMENTAL AND NOT REFACTORED FOR READABILITY,
-    //NONE OF IT IS USED IN THE RUNNING APP
-    //-------------------------------------------------------------------------------
-
-    //Technically works, but due to the pastels being so close in RGB values and so close to white
-    //the result is just a whiteish mess unless you manage to get almost precisely 0 on two of the axes
-    private void gradualThematicColours() {
-        int[] xColour = {204, 212, 191};
-        int[] yColour = {238, 186, 178};
-        int[] zColour = {245, 226, 228};
+    private void gradualBackgroundShift() {
+        int[] xColourCopy = xColour.clone();
+        int[] yColourCopy = yColour.clone();
+        int[] zColourCopy = zColour.clone();
 
         float normalisedX = Utils.normalise(filteredValues[0], GRAVITY_CONSTANT);
         float normalisedY = Utils.normalise(filteredValues[1], GRAVITY_CONSTANT);
         float normalisedZ = Utils.normalise(filteredValues[2], GRAVITY_CONSTANT);
-        Log.e("Test", String.valueOf(normalisedX));
-        xColour = Utils.intArrayMultiplyByN(xColour, normalisedX);
-        yColour = Utils.intArrayMultiplyByN(yColour, normalisedY);
-        zColour = Utils.intArrayMultiplyByN(zColour, normalisedZ);
-        Log.e("Test", String.valueOf(xColour[0]));
-        Log.e("Test", String.valueOf(yColour[0]));
-        Log.e("Test", String.valueOf(zColour[0]));
-        int[] finalColour = {xColour[0] + yColour[0] + zColour[0], xColour[1] + yColour[1] + zColour[1], xColour[2] + yColour[2] + zColour[2]};
+
+        Utils.intArrayMultiplyByN(xColourCopy, normalisedX);
+        Utils.intArrayMultiplyByN(yColourCopy, normalisedY);
+        Utils.intArrayMultiplyByN(zColourCopy, normalisedZ);
+
+        int[] finalColour = {xColourCopy[0] + yColourCopy[0] + zColourCopy[0], xColourCopy[1] + yColourCopy[1] + zColourCopy[1], xColourCopy[2] + yColourCopy[2] + zColourCopy[2]};
         String[] finalColourHex = new String[3];
         for (int i = 0; i < finalColour.length; i++) {
             finalColourHex[i] = Utils.getHex(Math.min(finalColour[i], 255));
         }
-        Log.e("Test", String.valueOf(finalColourHex[0]));
-        Log.e("Test", String.valueOf(finalColourHex[1]));
-        Log.e("Test", String.valueOf(finalColourHex[2]));
-        constraintLayout.setBackgroundColor(Color.parseColor("#FF" + finalColourHex[0] + finalColourHex[1] + finalColourHex[2]));
+        String colourAlpha = "#FF";
+        constraintLayout.setBackgroundColor(Color.parseColor(colourAlpha + finalColourHex[0] + finalColourHex[1] + finalColourHex[2]));
     }
+
 }
