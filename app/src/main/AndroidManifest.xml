@@ -12,13 +12,17 @@
 
         <activity
             android:name=".DisplayCompassActivity"
-            android:exported="false" />
-        <activity
-            android:name=".DisplayAccelerometerActivity"
+            android:screenOrientation="portrait"
             android:exported="false"
             android:parentActivityName=".MainActivity" />
         <activity
+            android:name=".DisplayAccelerometerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity" />
+        <activity
             android:name=".MainActivity"
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

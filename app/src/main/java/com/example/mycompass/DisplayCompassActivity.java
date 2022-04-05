@@ -8,10 +8,14 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -21,19 +25,26 @@ import java.util.Map;
 public class DisplayCompassActivity extends AppCompatActivity implements SensorEventListener {
 
     private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private Sensor magneticField;
+    private SoundPool soundPool;
+
     private ImageView compassImage;
     private ConstraintLayout constraintLayout;
     private TextView headingText;
     private TextView headingDegree;
+
     private float angle;
-    private Sensor accelerometer;
-    private Sensor magneticField;
+    private long pingDelay = 1000;
+    private long previousPingTime = System.currentTimeMillis();
     private boolean hasVibrated = true;
     private float[] accelerometerValues = new float[3];
     private float[] magneticValues = new float[3];
-    private float[] rotationMatrix = new float[9];
-    private float[] orientationAngles = new float[3];
-    private int vibrationDuration = 300;
+    private final float[] rotationMatrix = new float[9];
+    private final float[] orientationAngles = new float[3];
+    private boolean soundLoaded;
+
+    private int sound1;
 
     HashMap<String, Integer> headingValues = new HashMap<>();
 
@@ -48,12 +59,20 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         headingText = findViewById(R.id.headingWrittenTextView);
         headingDegree = findViewById(R.id.headingAngleTextView);
 
+        AudioAttributes audioAttributes = new AudioAttributes.Builder().setUsage(AudioAttributes.
+                USAGE_ASSISTANCE_SONIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+        soundPool = new SoundPool.Builder().setMaxStreams(4).setAudioAttributes(audioAttributes).build();
+
+        soundPool.setOnLoadCompleteListener((soundPool, sampleId, status) -> soundLoaded = true);
+
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
         magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         sensorManager.registerListener(this, magneticField, SensorManager.SENSOR_DELAY_GAME);
-
+        this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        sound1 = soundPool.load(this, R.raw.assets_note1, 1);
         setupHeadingMap();
 
     }
@@ -107,6 +126,10 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         displayAngle();
         provideHeadingText();
         gradualNorthColour();
+        if(soundLoaded)
+            playSound();
+
+
     }
 
     //Provides the angle of the phone from the northern line
@@ -144,6 +167,7 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
     //Vibrates if pointing north
     private void vibrateOnNorth(String heading) {
         if(heading.equals("North") && !hasVibrated){
+            int vibrationDuration = 300;
             vibrate(vibrationDuration);
             hasVibrated = true;
         }else if(!heading.equals("North")){
@@ -160,10 +184,7 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         int greenNorth = 230;
         int blueNorth = 191;
         //normalise angle difference
-        float normalisedAngle = Math.abs(angle - 180f) / 180f;
-        if (normalisedAngle > 1) {
-            normalisedAngle = 1f;
-        }
+        float normalisedAngle = normaliseAngle(angle);
 
         int red = redSouth - (int) ((redSouth - redNorth) * normalisedAngle);
         int green = greenSouth - (int) ((greenSouth - greenNorth) * normalisedAngle);
@@ -176,7 +197,10 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         constraintLayout.setBackgroundColor(Color.parseColor(opacity + hexRed + hexGreen + hexBlue));
     }
 
-
+    private float normaliseAngle(float mAngle){
+        float normalisedAngle = Math.abs(mAngle - 180f) / 180f;
+        return (normalisedAngle > 1 ? 1f : normalisedAngle);
+    }
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
@@ -189,5 +213,29 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
         } else {
             ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(durationTimeMillis);
         }
+    }
+
+    private void changePingDelay(){
+        float normalisedAngle = normaliseAngle(angle);
+        long maxPingDelay = 3000;
+        long newPingDelay = (long) ((1-normalisedAngle) * maxPingDelay);
+        long minPingDelay = 200;
+        pingDelay = (Math.max(newPingDelay, minPingDelay));
+    }
+
+    private void playSound(){
+        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        float currentVolume = (float) audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        float maxVolume = (float) audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        //Normalise since soundPool.play() requires a value between 0.0 and 1.0 for volume
+        float normalisedVolume = currentVolume / maxVolume;
+        long currentTime = System.currentTimeMillis();
+        if(currentTime- previousPingTime > pingDelay)
+        {
+            soundPool.play(sound1, normalisedVolume, normalisedVolume, 1, 0, 1f);
+            changePingDelay();
+            previousPingTime = currentTime;
+        }
+
     }
 }

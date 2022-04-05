@@ -29,7 +29,6 @@ public class DisplayAccelerometerActivity extends AppCompatActivity implements S
     //Hardware access
     private SensorManager sensorManager;
     private Sensor accelerometer;
-
     private SoundPool soundPool;
 
     //UI and Views
