@@ -48,6 +48,7 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
 
     HashMap<String, Integer> headingValues = new HashMap<>();
 
+    private int onNewBranch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
