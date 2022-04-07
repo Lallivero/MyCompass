@@ -16,6 +16,8 @@ import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 
+import android.view.animation.Animation;
+import android.view.animation.RotateAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -35,6 +37,7 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
     private TextView headingDegree;
 
     private float angle;
+    private float previousAngle = 0f;
     private long pingDelay = 1000;
     private long previousPingTime = System.currentTimeMillis();
     private boolean hasVibrated = true;
@@ -47,8 +50,6 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
     private int sound1;
 
     HashMap<String, Integer> headingValues = new HashMap<>();
-
-    private int onNewBranch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +143,13 @@ public class DisplayCompassActivity extends AppCompatActivity implements SensorE
 
         float degrees = (float) (Math.toDegrees(orientation[0]) + 360.0f) % 360.0f;
         angle = Math.round(degrees * 100.0f) / 100.0f;
-        compassImage.setRotation(angle * -1);
+        RotateAnimation rotateAnimation = new RotateAnimation(previousAngle, -angle,
+                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        rotateAnimation.setFillAfter(true);
+        rotateAnimation.setDuration(500);
+
+        compassImage.startAnimation(rotateAnimation);
+        previousAngle = -angle;
     }
 
     private void displayAngle() {
